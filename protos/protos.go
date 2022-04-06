@@ -2,12 +2,13 @@ package protos
 
 import (
 	"encoding/json"
+	"strings"
 
 	"github.com/pkg/errors"
 )
 
 const (
-	NatsRpcErrorKey = "NatsRpcError:"
+	NatsRpcErrorKey = "NatsRpcError"
 )
 
 var (
@@ -77,7 +78,19 @@ func NewRpcError(opts ...any) *RpcError {
 			me.Code = err.GetCode()
 			me.Message = err.GetMessage()
 		} else if err, ok := opts[0].(error); ok {
-			me.Message = err.Error()
+			isRpcError := false
+			errStr := strings.TrimSpace(err.Error())
+			if strings.Contains(errStr, `"`+NatsRpcErrorKey+`"`) {
+				tmp := RpcError{}
+				err := json.Unmarshal([]byte(errStr), &tmp)
+				if err == nil {
+					isRpcError = true
+					*me = tmp
+				}
+			}
+			if !isRpcError {
+				me.Message = errStr
+			}
 		} else {
 			me.Code = opts[0].(string)
 		}
@@ -111,10 +124,6 @@ func (me *RpcError) Error() string {
 	b, _ := json.Marshal(v)
 	return string(b)
 
-}
-
-func (me *RpcError) MarshalJSON() ([]byte, error) {
-	return json.Marshal(me.rpcError)
 }
 
 func (me *RpcError) UnmarshalJSON(b []byte) error {
