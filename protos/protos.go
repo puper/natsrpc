@@ -3,16 +3,10 @@ package protos
 import (
 	"encoding/json"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 const (
 	NatsRpcErrorKey = "NatsRpcError"
-)
-
-var (
-	ErrNotRpcError = errors.New("not rpc error")
 )
 
 type Request struct {
@@ -126,13 +120,19 @@ func (me *RpcError) Error() string {
 
 }
 
+// only accept string
 func (me *RpcError) UnmarshalJSON(b []byte) error {
+	var errStr string
+	if err := json.Unmarshal(b, &errStr); err != nil {
+		return err
+	}
 	v := map[string]rpcError{}
-	if err := json.Unmarshal(b, &v); err == nil {
+	if err := json.Unmarshal([]byte(errStr), &v); err == nil {
 		if _, ok := v[NatsRpcErrorKey]; ok {
 			me.rpcError = v[NatsRpcErrorKey]
 			return nil
 		}
 	}
-	return ErrNotRpcError
+	me.Message = errStr
+	return nil
 }

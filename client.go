@@ -21,9 +21,8 @@ func New(cfg *Config) (*Client, error) {
 }
 
 type Client struct {
-	cfg     *Config
-	natsCli *nats.Conn
-	js      nats.JetStream
+	cfg *Config
+	js  nats.JetStream
 }
 
 func (me *Client) Stream(serviceMethod string, args any) error {
@@ -48,7 +47,7 @@ func (me *Client) Call(serviceMethod string, args any, reply any) *protos.RpcErr
 		ServiceMethod: serviceMethod,
 		Args:          b,
 	}
-	msg, err := me.natsCli.Request(me.cfg.RpcSubject, req.Encode(), me.cfg.RpcTimeout)
+	msg, err := me.cfg.NatsCli.Request(me.cfg.RpcSubject, req.Encode(), me.cfg.RpcTimeout)
 	if err != nil {
 		return protos.NewRpcError("", fmt.Sprintf("RpcRequestError: %v", err.Error()))
 	}
