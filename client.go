@@ -3,6 +3,7 @@ package natsrpc
 import (
 	"encoding/json"
 	"fmt"
+	"hash/crc32"
 
 	"github.com/nats-io/nats.go"
 	"github.com/puper/natsrpc/protos"
@@ -75,4 +76,8 @@ func (me *Client) Call(serviceMethod string, args any, reply any, dispatchKeys .
 		return protos.NewRpcError("", fmt.Sprintf("RpcResponseUnmarshalError: %v", err.Error()))
 	}
 	return nil
+}
+
+func DispatchKey(format string, a ...any) string {
+	return fmt.Sprint(crc32.ChecksumIEEE([]byte(fmt.Sprintf(format, a...))))
 }
