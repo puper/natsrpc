@@ -25,7 +25,10 @@ type Client struct {
 	js  nats.JetStream
 }
 
-func (me *Client) Stream(serviceMethod string, args any) error {
+/*
+provide dispatch key if you want dispatch task.
+*/
+func (me *Client) Stream(serviceMethod string, args any, dispatchKeys ...string) error {
 	b, err := json.Marshal(args)
 	if err != nil {
 		return err
@@ -34,20 +37,28 @@ func (me *Client) Stream(serviceMethod string, args any) error {
 		ServiceMethod: serviceMethod,
 		Args:          b,
 	}
-	_, err = me.js.Publish(me.cfg.StreamSubject, req.Encode())
+	subject := me.cfg.StreamSubject + ".default.__default__"
+	if len(dispatchKeys) > 0 {
+		subject += "." + dispatchKeys[0]
+	}
+	_, err = me.js.Publish(subject, req.Encode())
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (me *Client) Call(serviceMethod string, args any, reply any) *protos.RpcError {
+func (me *Client) Call(serviceMethod string, args any, reply any, dispatchKeys ...string) *protos.RpcError {
 	b, _ := json.Marshal(args)
 	req := &protos.Request{
 		ServiceMethod: serviceMethod,
 		Args:          b,
 	}
-	msg, err := me.cfg.NatsCli.Request(me.cfg.RpcSubject, req.Encode(), me.cfg.RpcTimeout)
+	subject := me.cfg.RpcSubject + ".default.__default__"
+	if len(dispatchKeys) > 0 {
+		subject += "." + dispatchKeys[0]
+	}
+	msg, err := me.cfg.NatsCli.Request(subject, req.Encode(), me.cfg.RpcTimeout)
 	if err != nil {
 		return protos.NewRpcError("", fmt.Sprintf("RpcRequestError: %v", err.Error()))
 	}
